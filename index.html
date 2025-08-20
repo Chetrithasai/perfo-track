@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cricket Performance Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 1100px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h1, h2, h3 { margin-top: 20px; }
+    .grid { display: grid; gap: 15px; }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+    label { font-weight: bold; display: block; margin-bottom: 5px; }
+    input, textarea, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
+    textarea { resize: vertical; }
+    button { padding: 10px 15px; border: none; background: #0077cc; color: white; border-radius: 5px; cursor: pointer; margin-top: 15px; }
+    button:hover { background: #005fa3; }
+    .charts { margin-top: 40px; }
+    canvas { background: #fafafa; border-radius: 10px; padding: 10px; margin-bottom: 30px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #0077cc; color: white; }
+    tbody { display: block; max-height: 250px; overflow-y: auto; }
+    thead, tbody tr { display: table; width: 100%; table-layout: fixed; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Cricket Performance Tracker</h1>
+
+    <!-- General Info -->
+    <h2>General Info</h2>
+    <div class="grid grid-2">
+      <div>
+        <label>Date</label>
+        <input type="date" id="date" />
+      </div>
+      <div>
+        <label>Match Type</label>
+        <select id="matchType">
+          <option>Practice</option>
+          <option>League</option>
+          <option>Tournament</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Batting -->
+    <h2>Batting</h2>
+    <div class="grid grid-4">
+      <div><label>Runs</label><input type="number" id="runs" /></div>
+      <div><label>Balls</label><input type="number" id="balls" /></div>
+      <div><label>Fours</label><input type="number" id="fours" /></div>
+      <div><label>Sixes</label><input type="number" id="sixes" /></div>
+    </div>
+    <div>
+      <label>Key Takeaways (Batting)</label>
+      <textarea rows="3" id="battingNotes"></textarea>
+    </div>
+
+    <!-- Bowling -->
+    <h2>Bowling</h2>
+    <div class="grid grid-4">
+      <div><label>Overs</label><input type="number" step="0.1" id="overs" /></div>
+      <div><label>Runs Conceded</label><input type="number" id="runsConceded" /></div>
+      <div><label>Wickets</label><input type="number" id="wickets" /></div>
+      <div><label>Maidens</label><input type="number" id="maidens" /></div>
+      <div><label>Wides</label><input type="number" id="wides" /></div>
+      <div><label>No Balls</label><input type="number" id="noBalls" /></div>
+    </div>
+    <div>
+      <label>Key Takeaways (Bowling)</label>
+      <textarea rows="3" id="bowlingNotes"></textarea>
+    </div>
+
+    <!-- Fielding -->
+    <h2>Fielding</h2>
+    <div class="grid grid-4">
+      <div><label>Catches</label><input type="number" id="catches" /></div>
+      <div><label>Run Outs</label><input type="number" id="runOuts" /></div>
+      <div><label>Drops</label><input type="number" id="drops" /></div>
+    </div>
+
+    <!-- Notes -->
+    <h2>Other Notes</h2>
+    <textarea rows="4" id="otherNotes"></textarea>
+
+    <br>
+    <button onclick="saveEntry()">Save Entry</button>
+
+    <!-- Charts -->
+    <div class="charts">
+      <h2>Performance Charts</h2>
+      <canvas id="runsChart"></canvas>
+      <canvas id="wicketsChart"></canvas>
+      <canvas id="srChart"></canvas>
+      <canvas id="ecoChart"></canvas>
+    </div>
+
+    <!-- History -->
+    <h2>Match History</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Runs</th>
+          <th>Balls</th>
+          <th>SR</th>
+          <th>Overs</th>
+          <th>Runs Conceded</th>
+          <th>Wickets</th>
+          <th>Eco</th>
+          <th>Catches</th>
+          <th>Run Outs</th>
+          <th>Drops</th>
+        </tr>
+      </thead>
+      <tbody id="historyTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+    let entries = JSON.parse(localStorage.getItem("cricketEntries")) || [];
+
+    function saveEntry() {
+      const entry = {
+        date: document.getElementById("date").value,
+        matchType: document.getElementById("matchType").value,
+        runs: +document.getElementById("runs").value || 0,
+        balls: +document.getElementById("balls").value || 0,
+        fours: +document.getElementById("fours").value || 0,
+        sixes: +document.getElementById("sixes").value || 0,
+        battingNotes: document.getElementById("battingNotes").value,
+        overs: +document.getElementById("overs").value || 0,
+        runsConceded: +document.getElementById("runsConceded").value || 0,
+        wickets: +document.getElementById("wickets").value || 0,
+        maidens: +document.getElementById("maidens").value || 0,
+        wides: +document.getElementById("wides").value || 0,
+        noBalls: +document.getElementById("noBalls").value || 0,
+        bowlingNotes: document.getElementById("bowlingNotes").value,
+        catches: +document.getElementById("catches").value || 0,
+        runOuts: +document.getElementById("runOuts").value || 0,
+        drops: +document.getElementById("drops").value || 0,
+        otherNotes: document.getElementById("otherNotes").value
+      };
+
+      entries.push(entry);
+      localStorage.setItem("cricketEntries", JSON.stringify(entries));
+      updateCharts();
+      updateTable();
+      alert("Entry saved!");
+    }
+
+    function calcSR(runs, balls) {
+      return balls > 0 ? ((runs / balls) * 100).toFixed(1) : 0;
+    }
+
+    function calcEco(runsConceded, overs) {
+      return overs > 0 ? (runsConceded / overs).toFixed(2) : 0;
+    }
+
+    // Chart setup
+    const runsChart = new Chart(document.getElementById("runsChart"), {
+      type: "line",
+      data: { labels: [], datasets: [{ label: "Runs", data: [], borderColor: "blue", fill: false }] }
+    });
+
+    const wicketsChart = new Chart(document.getElementById("wicketsChart"), {
+      type: "bar",
+      data: { labels: [], datasets: [{ label: "Wickets", data: [], backgroundColor: "green" }] }
+    });
+
+    const srChart = new Chart(document.getElementById("srChart"), {
+      type: "line",
+      data: { labels: [], datasets: [{ label: "Strike Rate", data: [], borderColor: "orange", fill: false }] }
+    });
+
+    const ecoChart = new Chart(document.getElementById("ecoChart"), {
+      type: "line",
+      data: { labels: [], datasets: [{ label: "Economy Rate", data: [], borderColor: "red", fill: false }] }
+    });
+
+    function updateCharts() {
+      const labels = entries.map(e => e.date || "Match");
+      runsChart.data.labels = labels;
+      runsChart.data.datasets[0].data = entries.map(e => e.runs);
+      runsChart.update();
+
+      wicketsChart.data.labels = labels;
+      wicketsChart.data.datasets[0].data = entries.map(e => e.wickets);
+      wicketsChart.update();
+
+      srChart.data.labels = labels;
+      srChart.data.datasets[0].data = entries.map(e => calcSR(e.runs, e.balls));
+      srChart.update();
+
+      ecoChart.data.labels = labels;
+      ecoChart.data.datasets[0].data = entries.map(e => calcEco(e.runsConceded, e.overs));
+      ecoChart.update();
+    }
+
+    function updateTable() {
+      const table = document.getElementById("historyTable");
+      table.innerHTML = "";
+      entries.forEach(e => {
+        const row = `<tr>
+          <td>${e.date}</td>
+          <td>${e.matchType}</td>
+          <td>${e.runs}</td>
+          <td>${e.balls}</td>
+          <td>${calcSR(e.runs, e.balls)}</td>
+          <td>${e.overs}</td>
+          <td>${e.runsConceded}</td>
+          <td>${e.wickets}</td>
+          <td>${calcEco(e.runsConceded, e.overs)}</td>
+          <td>${e.catches}</td>
+          <td>${e.runOuts}</td>
+          <td>${e.drops}</td>
+        </tr>`;
+        table.innerHTML += row;
+      });
+    }
+
+    // initialize
+    updateCharts();
+    updateTable();
+  </script>
+</body>
+</html>
